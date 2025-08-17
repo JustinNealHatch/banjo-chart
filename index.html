@@ -3,113 +3,255 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Banjo Open G - Notes by Fret (Hide on Click + Tooltips)</title>
+<title>Banjo Open G - Notes by Fret</title>
 <style>
-  :root { --even:#e8f4ff; --open12:#fff6a5; } /* I'm giving you a CSS root selector containing two custom colors to reuse to shade even frets and highlight open and 12th frets */
-  body { font-family: system-ui, -apple-system, Segoe UI, Arial, sans-serif; padding: 16px; } /* I'm giving you a body rule containing font and padding to set basic page layout */
-  .wrap { overflow-x: auto; } /* I'm giving you a wrapper containing horizontal scroll to handle the wide table */
-  table { border-collapse: collapse; margin-top: 8px; } /* I'm giving you a table rule containing collapse and margin to make borders clean */
-  th, td { border: 1px solid #555; padding: 6px 10px; text-align: center; white-space: nowrap; } /* I'm giving you cell styles containing borders and spacing to keep content readable */
-  th.sticky { position: sticky; left: 0; background: #fff; z-index: 2; } /* I'm giving you a sticky header rule containing fixed positioning to keep string labels visible while scrolling */
-  tr > th.rowlbl { background: #fff; font-weight: 600; } /* I'm giving you a row-label rule containing emphasis to distinguish string names */
-  td.even { background: var(--even); } /* I'm giving you a class containing the even-fret color to visually band the table */
-  td.open12 { background: var(--open12); } /* I'm giving you a class containing the open and 12th fret color to mark landmarks */
-  td.hidden-note { color: transparent; } /* I'm giving you a class containing transparent text to hide a note without changing layout */
-  td.hidden-note::after { content: ""; } /* I'm giving you a pseudo-element containing no content to avoid showing replacement text */
-  td { cursor: pointer; user-select: none; } /* I'm giving you a td rule containing pointer cursor and no-select to make clicks feel like buttons */
-  caption { text-align: left; font-weight: 700; } /* I'm giving you a caption rule containing alignment and weight to name the chart */
-  .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; } /* I'm giving you a controls bar containing layout rules to align the button and help text */
-  button { padding: 6px 10px; border: 1px solid #444; background: #f7f7f7; cursor: pointer; } /* I'm giving you a button rule containing padding and border to make an obvious control */
-  button:hover { background: #eee; } /* I'm giving you a hover rule containing a lighter shade to provide feedback */
+  :root { /* I'm giving you a CSS root selector containing design tokens to keep the look consistent */
+    --bg: #0f172a;        /* page background */
+    --card: #111827;      /* card surface */
+    --card-2: #0b1222;    /* softer surface */
+    --fg: #e5e7eb;        /* main text */
+    --muted: #9ca3af;     /* secondary text */
+    --accent: #60a5fa;    /* accent color */
+    --accent-2: #34d399;  /* second accent */
+    --grid: #374151;      /* grid line color */
+    --even: #0b2540;      /* even fret band */
+    --open12: #1f2937;    /* open and 12th band */
+    --radius: 16px;       /* rounded corners */
+    --radius-pill: 999px; /* fully rounded buttons */
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+  } /* I'm giving you design tokens containing colors and radii to theme the page */
+
+  html, body { height: 100%; } /* I'm giving you a rule containing full height to allow centered layout */
+  body { /* I'm giving you a body rule containing layout and color to set the base look */
+    margin: 0;
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Arial;
+    color: var(--fg);
+    background: radial-gradient(1200px 600px at 20% 0%, #0b1020 0%, #0a0e1a 45%, #070a13 100%), var(--bg);
+    display: grid;
+    place-items: start center;
+    padding: 24px;
+    gap: 16px;
+  }
+
+  .card { /* I'm giving you a container class containing padding, corner radius, and shadow to present content like a modern panel */
+    width: min(1400px, 96vw);
+    background: linear-gradient(180deg, var(--card) 0%, var(--card-2) 100%);
+    border: 1px solid #1f2937;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 18px;
+  }
+
+  .title { /* I'm giving you a header container containing a title and subtitle to label the tool */
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .title h1 { margin: 0; font-size: 20px; font-weight: 700; }
+  .title p { margin: 0; color: var(--muted); font-size: 14px; }
+
+  .controls { /* I'm giving you a toolbar containing buttons to control the table */
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid #1f2937;
+    border-radius: var(--radius);
+    margin-bottom: 12px;
+  }
+
+  .btn { /* I'm giving you a button class containing rounded shape and hover state to look modern */
+    appearance: none;
+    border: 1px solid #2b3544;
+    border-radius: var(--radius-pill);
+    padding: 10px 14px;
+    font-weight: 600;
+    letter-spacing: .2px;
+    cursor: pointer;
+    color: #0b1222;
+    background: linear-gradient(180deg, #e1efff 0%, #bfe0ff 100%);
+    transition: transform .06s ease, box-shadow .12s ease, background .2s ease;
+    box-shadow: 0 4px 14px rgba(96,165,250,.25), inset 0 1px 0 rgba(255,255,255,.6);
+  }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 8px 26px rgba(96,165,250,.3), inset 0 1px 0 rgba(255,255,255,.7); }
+  .btn:active { transform: translateY(0); box-shadow: 0 3px 10px rgba(96,165,250,.25), inset 0 1px 0 rgba(255,255,255,.6); }
+
+  .btn-alt { /* I'm giving you a second button class containing a green variant to give an alternate action style */
+    background: linear-gradient(180deg, #d1fae5 0%, #a7f3d0 100%);
+    box-shadow: 0 4px 14px rgba(52,211,153,.25), inset 0 1px 0 rgba(255,255,255,.6);
+  }
+
+  .wrap { overflow-x: auto; border-radius: var(--radius); } /* I'm giving you a scroller containing clipped corners to keep the table rounded */
+
+  table { /* I'm giving you a table rule containing separate borders and spacing to achieve a card grid look */
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 0;
+    background: rgba(255,255,255,0.02);
+    min-width: max(900px, 100%);
+    border: 1px solid #1f2937;
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  caption { /* I'm giving you a caption rule containing spacing to title the table */
+    caption-side: top;
+    text-align: left;
+    padding: 12px 14px;
+    font-weight: 700;
+    color: var(--fg);
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid #1f2937;
+  }
+
+  th, td { /* I'm giving you a cell rule containing padding and grid lines to make values easy to read */
+    padding: 8px 12px;
+    text-align: center;
+    border-right: 1px solid var(--grid);
+    border-bottom: 1px solid var(--grid);
+    white-space: nowrap;
+    transition: background .12s ease, color .12s ease, transform .06s ease;
+  }
+
+  thead th { /* I'm giving you a header cell rule containing subtle backdrop to separate the header */
+    position: sticky;
+    top: 0;
+    background: #0e1526;
+    z-index: 3;
+    font-weight: 700;
+    color: #c9d1d9;
+  }
+
+  th.rowlbl { /* I'm giving you a row label rule containing sticky positioning to keep string names visible */
+    position: sticky;
+    left: 0;
+    background: #0e1526;
+    z-index: 2;
+    font-weight: 700;
+  }
+
+  td { cursor: pointer; user-select: none; } /* I'm giving you a td rule containing pointer and no select to support clicking */
+  td:hover { background: rgba(96,165,250,.16); } /* I'm giving you a hover effect containing a soft accent to show interactivity */
+
+  td.even { background: var(--even); } /* I'm giving you a class containing a darker band to mark even frets */
+  td.open12 { background: var(--open12); } /* I'm giving you a class containing a special band to mark open and 12th frets */
+
+  td.hidden-note { color: transparent; } /* I'm giving you a class containing transparent text to hide a note cleanly */
+  td.hidden-note::after { content: ""; } /* I'm giving you a pseudo element containing empty content to avoid layout jumps */
+
+  /* round the outer corners of the visible grid */
+  thead th:first-child { border-top-left-radius: var(--radius); }
+  thead th:last-child { border-top-right-radius: var(--radius); }
+  tbody tr:last-child td:first-child,
+  tbody tr:last-child th.rowlbl { border-bottom-left-radius: var(--radius); }
+  tbody tr:last-child td:last-child { border-bottom-right-radius: var(--radius); }
 </style>
 </head>
 <body>
-  <div class="controls">
-    <button id="reset">Show all notes</button> <!-- I'm giving you a button containing a reset action to restore any hidden cells -->
-    <span>Left click any cell to hide or show that note. Hover to see String • Fret • Note.</span> <!-- I'm giving you a span containing usage guidance to explain click and hover behavior -->
-  </div>
+  <div class="card"> <!-- I'm giving you a card container containing the title, controls, and table to frame the tool -->
+    <div class="title"> <!-- I'm giving you a header container containing title text to describe the chart -->
+      <h1>Banjo Open G</h1>
+      <p>Notes by Fret. Bottom to top strings: 5th g, 3rd G, 4th D, 2nd B, 1st D.</p>
+    </div>
 
-  <div class="wrap">
-    <table id="banjo">
-      <caption>Banjo Open G - Notes by Fret (5th string on bottom)</caption>
-    </table>
+    <div class="controls"> <!-- I'm giving you a toolbar containing buttons to reset and hint usage -->
+      <button id="reset" class="btn">Show all notes</button> <!-- I'm giving you a button containing a reset action to unhide all notes -->
+      <button id="hint" class="btn btn-alt">Tip</button> <!-- I'm giving you a button containing a hint action to show usage info -->
+      <span style="color:var(--muted)">Left click a cell to hide or show. Hover to see String • Fret • Note.</span> <!-- I'm giving you a span containing quick help to guide the user -->
+    </div>
+
+    <div class="wrap"> <!-- I'm giving you a scroll wrapper containing the table to allow horizontal panning -->
+      <table id="banjo"> <!-- I'm giving you a table element containing header and body to render the grid -->
+        <caption>Banjo Open G - Notes by Fret (5th string on bottom)</caption> <!-- I'm giving you a caption containing the table title to label the data -->
+        <!-- table fills by script -->
+      </table>
+    </div>
   </div>
 
 <script>
-  const NOTES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"]; /* I'm giving you an array containing the 12-note chromatic set to compute note names */
-  const idx = Object.fromEntries(NOTES.map((n,i)=>[n,i])); /* I'm giving you an object containing name-to-index pairs to support constant-time lookups */
-  const noteAfter = (start, semis) => NOTES[(idx[start] + semis) % 12]; /* I'm giving you a function containing a start note and semitone distance to produce a wrapped chromatic result */
+  const NOTES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"]; /* I'm giving you an array containing the 12 chromatic names to compute note text */
+  const idx = Object.fromEntries(NOTES.map((n,i)=>[n,i])); /* I'm giving you an object containing name to index pairs to look up semitone positions fast */
+  const noteAfter = (start, semis) => NOTES[(idx[start] + semis) % 12]; /* I'm giving you a function containing a base note and steps to wrap around the chromatic wheel */
 
-  /* ORDER FIX: top to bottom here will render bottom to top as: 5th g, G, D, B, D */
-  const rows = [ /* I'm giving you an array containing per-string descriptors to drive row construction */
-    { label: "D", start: "D", short5: false },   // I'm giving you an object containing label and base pitch to compute 1st-string notes
-    { label: "B", start: "B", short5: false },   // I'm giving you an object containing label and base pitch to compute 2nd-string notes
-    { label: "G", start: "G", short5: false },   // I'm giving you an object containing label and base pitch to compute 3rd-string notes
-    { label: "D", start: "D", short5: false },   // I'm giving you an object containing label and base pitch to compute 4th-string notes
-    { label: "5th g (short)", start: "G", short5: true } // I'm giving you an object containing label and a short-string flag to blank frets 0 to 4 on the 5th string
+  /* Order renders top to bottom so the visible bottom to top is: 5th g, 3rd G, 4th D, 2nd B, 1st D */
+  const rows = [ /* I'm giving you an array containing per string descriptors to drive each table row */
+    { label: "1st D", start: "D", short5: false },   // I'm giving you an object containing the 1st string base to compute long string notes
+    { label: "2nd B", start: "B", short5: false },   // I'm giving you an object containing the 2nd string base to compute long string notes
+    { label: "4th D", start: "D", short5: false },   // I'm giving you an object containing the 4th string base to compute long string notes
+    { label: "3rd G", start: "G", short5: false },   // I'm giving you an object containing the 3rd string base to compute long string notes
+    { label: "5th g (short)", start: "G", short5: true } // I'm giving you an object containing the 5th short string to blank frets 0-4
   ];
 
-  const FRETS = Array.from({length: 23}, (_,i)=>i); /* I'm giving you an array containing integers 0 through 22 to define fret columns */
-  const tbl = document.getElementById("banjo"); /* I'm giving you a DOM reference containing the target table to inject header and body */
+  const FRETS = Array.from({length: 23}, (_,i)=>i); /* I'm giving you an array containing integers 0 to 22 to define columns */
 
-  const thead = document.createElement("thead"); /* I'm giving you a thead element containing the header row to label fret numbers */
-  const hr = document.createElement("tr"); /* I'm giving you a tr element containing header cells to align with body columns */
-  const emptyTh = document.createElement("th"); /* I'm giving you an empty corner cell containing no text to align row labels under the header */
-  emptyTh.className = "sticky rowlbl"; /* I'm giving you a class assignment containing sticky styling to keep the corner locked on scroll */
-  emptyTh.textContent = ""; /* I'm giving you an empty string containing nothing to intentionally leave the corner blank */
-  hr.appendChild(emptyTh); /* I'm giving you an append operation containing the empty corner to finish the header start */
+  const tbl = document.getElementById("banjo"); /* I'm giving you a DOM reference containing the table node to attach parts */
 
-  FRETS.forEach(function(f){ /* I'm giving you a forEach callback containing each fret index to build its header cell; the callback works by iterating the array and appending one th per fret to the header row */
-    const th = document.createElement("th"); /* I'm giving you a header cell containing text to identify the fret number */
-    th.textContent = String(f); /* I'm giving you a string containing the fret index to display */
-    hr.appendChild(th); /* I'm giving you an append operation containing the prepared header cell to place it in the row */
+  const thead = document.createElement("thead"); /* I'm giving you a thead element containing the header row to label frets */
+  const hr = document.createElement("tr"); /* I'm giving you a row element containing header cells to align with columns */
+  const corner = document.createElement("th"); /* I'm giving you an empty corner header containing nothing to align row labels */
+  corner.className = "rowlbl"; /* I'm giving you a class assignment containing sticky style to keep the corner fixed */
+  corner.textContent = ""; /* I'm giving you an empty string containing nothing to keep the corner blank */
+  hr.appendChild(corner); /* I'm giving you an append operation containing the corner cell to place it at the start of the header */
+
+  FRETS.forEach(function(f){ /* I'm giving you a forEach callback containing each fret index to build a header cell; the callback works by creating a <th>, setting text, and appending it */
+    const th = document.createElement("th"); /* I'm giving you a header cell containing the fret number to label the column */
+    th.textContent = String(f); /* I'm giving you a string containing the fret index to show at the top */
+    hr.appendChild(th); /* I'm giving you an append operation containing the header cell to join the header row */
   });
 
-  thead.appendChild(hr); /* I'm giving you an append operation containing the complete header row to attach into the thead */
+  thead.appendChild(hr); /* I'm giving you an append operation containing the finished header row to attach it to thead */
   tbl.appendChild(thead); /* I'm giving you an append operation containing the thead to mount it into the table */
 
-  const tbody = document.createElement("tbody"); /* I'm giving you a tbody element containing all generated string rows to display notes */
+  const tbody = document.createElement("tbody"); /* I'm giving you a tbody element containing all string rows to display notes */
 
-  rows.forEach(function(row){ /* I'm giving you a forEach callback containing each string definition to produce a table row; the callback works by creating a tr, filling it with a label and fret cells, then attaching it to tbody */
-    const tr = document.createElement("tr"); /* I'm giving you a row element containing cells that represent this string */
-    const rl = document.createElement("th"); /* I'm giving you a row-label header cell containing the string name for orientation */
-    rl.textContent = row.label; /* I'm giving you a text node containing the string label to show in the sticky column */
-    rl.className = "sticky rowlbl"; /* I'm giving you a class assignment containing sticky styling to keep the label visible while scrolling */
-    tr.appendChild(rl); /* I'm giving you an append operation containing the label cell to add it as the first cell in the row */
+  rows.forEach(function(row){ /* I'm giving you a forEach callback containing each string config to build a table row; the callback works by creating a <tr>, adding the label cell, then generating note cells for each fret */
+    const tr = document.createElement("tr"); /* I'm giving you a row element containing cells for one string */
+    const rl = document.createElement("th"); /* I'm giving you a header cell containing the string label to orient the row */
+    rl.textContent = row.label; /* I'm giving you a text node containing the string name to display */
+    rl.className = "rowlbl"; /* I'm giving you a class assignment containing sticky left style to keep labels visible */
+    tr.appendChild(rl); /* I'm giving you an append operation containing the label cell to place it at the start of the row */
 
-    FRETS.forEach(function(f){ /* I'm giving you a forEach callback containing each fret index to create a playable cell; the callback works by computing the correct note, coloring the cell, adding tooltip text, and wiring the click handler */
-      const td = document.createElement("td"); /* I'm giving you a data cell containing the note text and click or hover affordances */
+    FRETS.forEach(function(f){ /* I'm giving you a forEach callback containing each fret number to create a note cell; the callback works by deciding the note text, styling by fret, adding tooltip, and wiring click toggle */
+      const td = document.createElement("td"); /* I'm giving you a data cell containing the note text and interactive behavior */
 
-      if (f === 0 || f === 12) { td.classList.add("open12"); } /* I'm giving you a conditional containing a landmark check to color open and 12th frets */
-      else if (f % 2 === 0) { td.classList.add("even"); } /* I'm giving you a conditional containing an even-fret check to add banded shading */
+      if (f === 0 || f === 12) { td.classList.add("open12"); } /* I'm giving you a conditional containing a landmark test to color open and 12th frets */
+      else if (f % 2 === 0) { td.classList.add("even"); } /* I'm giving you a conditional containing an even test to add band shading */
 
-      let text = ""; /* I'm giving you a variable containing default empty content to start note assignment */
-      if (row.short5) { /* I'm giving you a conditional containing the short-string rule to treat the 5th string specially */
-        if (f >= 5) { text = noteAfter("G", f - 5); } /* I'm giving you a computation containing a G base and (f minus 5) semitones to determine the 5th-string note */
+      let text = ""; /* I'm giving you a variable containing empty text to start the note decision */
+      if (row.short5) { /* I'm giving you a conditional containing the short string rule to handle the 5th string */
+        if (f >= 5) { text = noteAfter("G", f - 5); } /* I'm giving you a computation containing G plus (f-5) steps to get the 5th string note */
       } else {
-        text = noteAfter(row.start, f); /* I'm giving you a computation containing the string base pitch and fret offset to determine the long-string note */
+        text = noteAfter(row.start, f); /* I'm giving you a computation containing the base pitch plus fret steps to get the long string note */
       }
 
-      td.textContent = text; /* I'm giving you a text assignment containing the computed note name to display in the cell */
-      td.title = row.label + " • fret " + f + (text ? " • " + text : ""); /* I'm giving you a title attribute containing string, fret, and note to show as a native tooltip on hover */
+      td.textContent = text; /* I'm giving you a text assignment containing the final note label to show in the cell */
+      td.title = row.label + " • fret " + f + (text ? " • " + text : ""); /* I'm giving you a title attribute containing a tooltip with context for hover */
 
-      td.addEventListener("click", function(){ /* I'm giving you an event listener containing the left-click toggle to hide or show the note; the callback works by toggling a CSS class on the clicked cell when it contains text */
+      td.addEventListener("click", function(){ /* I'm giving you an event listener containing a click toggle to hide or show the note; the callback works by toggling a class on the cell if it is not empty */
         if (td.textContent !== "") { td.classList.toggle("hidden-note"); }
       });
 
-      td.dataset.fret = String(f); /* I'm giving you a data attribute containing the fret index to support potential future logic */
-      td.dataset.string = row.label; /* I'm giving you a data attribute containing the string label to support potential future logic */
+      td.dataset.fret = String(f); /* I'm giving you a data attribute containing the fret index to keep metadata handy */
+      td.dataset.string = row.label; /* I'm giving you a data attribute containing the string label to keep metadata handy */
 
-      tr.appendChild(td); /* I'm giving you an append operation containing the prepared fret cell to place it into the row */
+      tr.appendChild(td); /* I'm giving you an append operation containing the finished cell to join the row */
     });
 
-    tbody.appendChild(tr); /* I'm giving you an append operation containing the finished string row to add it to the table body */
+    tbody.appendChild(tr); /* I'm giving you an append operation containing the finished row to add it to the body */
   });
 
-  tbl.appendChild(tbody); /* I'm giving you an append operation containing the complete body to finalize the table structure */
+  tbl.appendChild(tbody); /* I'm giving you an append operation containing the complete body to finalize the table */
 
-  document.getElementById("reset").addEventListener("click", function(){ /* I'm giving you a reset-button listener containing a restore routine to unhide any notes; the callback works by selecting all hidden cells and removing the class that hides their text */
-    tbl.querySelectorAll("td.hidden-note").forEach(function(td){ td.classList.remove("hidden-note"); }); /* I'm giving you a forEach callback containing each hidden cell to remove the hiding class; the callback works by iterating the node list and applying classList.remove */
+  document.getElementById("reset").addEventListener("click", function(){ /* I'm giving you a reset button listener containing a routine to unhide all notes; the callback works by selecting hidden cells and removing the class */
+    tbl.querySelectorAll("td.hidden-note").forEach(function(td){ td.classList.remove("hidden-note"); }); /* I'm giving you a forEach callback containing each hidden cell to remove the hiding class; the callback works by iterating the NodeList and removing the class */
+  });
+
+  document.getElementById("hint").addEventListener("click", function(){ /* I'm giving you a button listener containing a quick tip to explain usage; the callback works by showing an alert with short instructions */
+    alert("Click any note to hide or show it. Use the Show all notes button to reset.");
   });
 </script>
 </body>
