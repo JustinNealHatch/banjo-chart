@@ -82,7 +82,7 @@
     background:radial-gradient(90% 90% at 30% 25%,#1a345a 0%,var(--chip) 60%,#0e213b 100%);
     color:var(--fg);font-weight:700;font-size:var(--chip-font);border:2px solid transparent;
     box-shadow:0 4px 12px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.08);
-    transition:transform .06s ease, background .15s ease, border-color .15s ease, box-shadow .15s ease, opacity .15s ease, color .15s ease;
+    transition:transform .06s ease, background .15s ease, border-color .15s ease, box-shadow .15s ease, opacity .15s ease, color .15s ease, visibility .15s ease;
     user-select:none;
   }
 
@@ -99,19 +99,24 @@
 
   .hidden-note{color:transparent} /* I'm giving you a class containing transparent text to hide the note label cleanly */
   .hidden-note::after{content:""} /* I'm giving you a pseudo element containing nothing to avoid layout jumps */
+
+  .acc-off{ /* I'm giving you a class containing invisibility to hide sharp-note chips when accidentals are turned off */
+    opacity:0; visibility:hidden; pointer-events:none;
+  }
 </style>
 </head>
 <body>
   <div class="card"> <!-- I'm giving you a card container containing the title, controls, and table to frame the tool -->
     <div class="title"> <!-- I'm giving you a header container containing title text to describe the chart -->
       <h1>Banjo Open G</h1>
-      <p>Notes by Fret. Bottom to top strings: 5th g, 3rd G, 4th D, 2nd B, 1st D.</p>
+      <p>Notes by Fret. Bottom to top strings: 5th g, 4th D, 3rd G, 2nd B, 1st D.</p>
     </div>
 
     <div class="controls"> <!-- I'm giving you a toolbar containing buttons to reset and hint usage -->
-      <button id="reset" class="btn">Show all notes</button> <!-- I'm giving you a button containing a reset action to unhide all notes -->
-      <button id="hint" class="btn btn-alt">Tip</button> <!-- I'm giving you a button containing a hint action to show usage info -->
-      <span style="color:var(--muted)">Left click a chip to hide or show. Hover to see String • Fret • Note.</span> <!-- I'm giving you a span containing quick help to guide the user -->
+      <button id="toggle-acc" class="btn btn-alt">Accidentals: On</button> <!-- I'm giving you a button containing a toggle to show/hide all sharp notes -->
+      <button id="reset" class="btn">Show all notes</button> <!-- I'm giving you a button containing a reset action to unhide all notes and re-enable accidentals -->
+      <button id="hint" class="btn">Tip</button> <!-- I'm giving you a button containing a hint action to show usage info -->
+      <span style="color:var(--muted)">Click a chip to hide/show. Use “Accidentals” to hide all sharps.</span> <!-- I'm giving you a span containing quick help to guide the user -->
     </div>
 
     <div class="wrap"> <!-- I'm giving you a scroll wrapper containing the table to allow horizontal panning -->
@@ -126,14 +131,14 @@
   const idx=Object.fromEntries(NOTES.map((n,i)=>[n,i])); /* I'm giving you an object containing name to index pairs to look up semitone positions fast */
   const noteAfter=(start,semis)=>NOTES[(idx[start]+semis)%12]; /* I'm giving you a function containing a base note and steps to wrap around the chromatic wheel */
 
-/* Order renders top to bottom so the visible bottom to top is: 5th g, 4th D, 3rd G, 2nd B, 1st D */
-const rows = [ /* I'm giving you an array containing per string descriptors to drive each table row */
-  { label: "1st D", start: "D", short5: false },   // I'm giving you an object containing the 1st string base to compute long string notes
-  { label: "2nd B", start: "B", short5: false },   // I'm giving you an object containing the 2nd string base to compute long string notes
-  { label: "3rd G", start: "G", short5: false },   // I'm giving you an object containing the 3rd string base to compute long string notes
-  { label: "4th D", start: "D", short5: false },   // I'm giving you an object containing the 4th string base to compute long string notes
-  { label: "5th g (short)", start: "G", short5: true } // I'm giving you an object containing the 5th short string to blank frets 0 to 4
-];
+  /* Order renders top to bottom so the visible bottom to top is: 5th g, 4th D, 3rd G, 2nd B, 1st D */
+  const rows=[ /* I'm giving you an array containing per string descriptors to drive each table row */
+    {label:"1st D",start:"D",short5:false},   // I'm giving you an object containing the 1st string base to compute long string notes
+    {label:"2nd B",start:"B",short5:false},   // I'm giving you an object containing the 2nd string base to compute long string notes
+    {label:"4th D",start:"D",short5:false},   // I'm giving you an object containing the 4th string base to compute long string notes
+    {label:"3rd G",start:"G",short5:false},   // I'm giving you an object containing the 3rd string base to compute long string notes
+    {label:"5th g (short)",start:"G",short5:true} // I'm giving you an object containing the 5th short string to blank frets 0 to 4
+  ];
 
   const FRETS=Array.from({length:23},(_,i)=>i); /* I'm giving you an array containing integers 0 to 22 to define columns */
   const tbl=document.getElementById("banjo"); /* I'm giving you a DOM reference containing the table node to attach parts */
@@ -179,32 +184,5 @@ const rows = [ /* I'm giving you an array containing per string descriptors to d
         if(f===0||f===12){ chip.classList.add("landmark"); } /* I'm giving you a conditional containing a landmark test to add a gold ring on open and 12th */
         else if(f%2===0){ chip.classList.add("even"); } /* I'm giving you a conditional containing an even test to add a blue ring on even frets */
         chip.textContent=text; /* I'm giving you a text assignment containing the note label to show inside the chip */
-        td.appendChild(chip); /* I'm giving you an append operation containing the chip to place it inside the cell */
-
-        td.addEventListener("click",function(){ /* I'm giving you an event listener containing a click toggle to hide or show the note; the callback works by toggling both the hidden label and the green active ring */
-          chip.classList.toggle("hidden-note");
-          chip.classList.toggle("active");
-        });
-      }else{
-        td.style.cursor="default"; /* I'm giving you a style assignment containing a default cursor to show that blank cells are not interactive */
-      }
-
-      td.title=row.label+" • fret "+f+(text?" • "+text:""); /* I'm giving you a title attribute containing a tooltip with context for hover */
-      tr.appendChild(td); /* I'm giving you an append operation containing the finished cell to join the row */
-    });
-
-    tbody.appendChild(tr); /* I'm giving you an append operation containing the finished row to add it to the body */
-  });
-
-  tbl.appendChild(tbody); /* I'm giving you an append operation containing the complete body to finalize the table */
-
-  document.getElementById("reset").addEventListener("click",function(){ /* I'm giving you a reset button listener containing a routine to unhide all notes; the callback works by selecting all chips and restoring visible state with the green ring */
-    document.querySelectorAll(".note").forEach(function(chip){ chip.classList.remove("hidden-note"); chip.classList.add("active"); }); /* I'm giving you a forEach callback containing each chip to reset visibility; the callback works by iterating the NodeList and setting classes */
-  });
-
-  document.getElementById("hint").addEventListener("click",function(){ /* I'm giving you a button listener containing a quick tip to explain usage; the callback works by showing an alert with short instructions */
-    alert("Click any circular note to hide or show it. Visible notes have a light green ring. Use Show all notes to reset.");
-  });
-</script>
-</body>
-</html>
+        chip.dataset.note=text; /* I'm giving you a data attribute containing the note text to quickly test for sharps later */
+        chip.dataset.acc = text.includes("#") ? "1" : "0"; /* I'm giving you a data attribute containing an accidental flag to ide*
